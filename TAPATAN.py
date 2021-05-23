@@ -1,10 +1,14 @@
 ###########################
-# NOMS + ROLES
-###########################
-
+# PROJET TAPATAN
+# Jules Marty
+# jihad Djiar
+# Sophie Wu
+# Adam Bouchaour
+# Thibault Astier
 ###########################
 # IMPORTS
 import tkinter as tk
+from tkinter import messagebox
 
 ###########################
 # GLOBALS VAR
@@ -20,6 +24,11 @@ JETONS = [3, 3]  # jetons restant (j1, j2)
 ETAT_PARTIE = 0  # 1 = placement, 2 = deplacement
 
 TOUR_JEU = 0  # Voir c'est au tour de quel joueur
+
+POINTS_JOUEURS = [0, 0]  # joueur 1 / 2
+
+MEMORY = []
+REPETITION = []
 
 rond = []  # Liste de points de la fenêtre PvP
 
@@ -84,22 +93,38 @@ def window_transition(id):  # jules
         # ia v ia -> menu
         racine3.destroy()
         menu()
+    if id == 4:
+        racine.destroy()
+        game_window_1()
+    if id == 5:
+        racine.destroy()
+        game_window_2()
+    if id == 6:
+        racine.destroy()
+        game_window_3()
+    if id == 11:
+        racine1.destroy()
+        game_window_1()
 
 
 def menu():  # thibault
-    global racine
+    global racine, POINTS_JOUEURS
     """ Fonction qui crée:
         -une fenetre de taille 400*400
         - 4 boutons: PvP, PvIA, IAvIA et Exit
         -Exit détruit la fenetre
     """
+    POINTS_JOUEURS = [0, 0]
     racine = tk.Tk()
     racine.title("Menu")
-    btn_PVP = tk.Button(racine, command=game_window_1, text="Player vs Player")
+    btn_PVP = tk.Button(racine, command=lambda: window_transition(4),
+                        text="Player vs Player")
     btn_PVP.pack()
-    btn_PVIA = tk.Button(racine, command=game_window_3, text="Player vs IA")
+    btn_PVIA = tk.Button(racine, command=lambda: window_transition(5),
+                         text="Player vs IA")
     btn_PVIA.pack()
-    btn_IAVIA = tk.Button(racine, command=game_window_2, text="IA vs IA")
+    btn_IAVIA = tk.Button(racine, command=lambda: window_transition(6),
+                          text="IA vs IA")
     btn_IAVIA.pack()
     btn_quit = tk.Button(racine, command=racine.destroy, text="Quitter")
     btn_quit.pack()
@@ -107,14 +132,13 @@ def menu():  # thibault
 
 
 def game_window_1():  # thibault
-    global racine1, canvas
+    global racine1, canvas, racine
     """Fonction qui creer:
         -une nouvelle fenetre avec un canvas 800*800
         -avec le plateau (carre centré) 600*600
         -lignes et ronds au intersections
         -Utilisé pour le PVP
     """
-    racine.destroy()  # ferme le menu
 
     racine1 = tk.Tk()
     racine1.title("TAPANTA")
@@ -145,18 +169,18 @@ def game_window_1():  # thibault
 
     # LABEL SCORE
     label_J1 = tk.Label(racine1, bg="pale goldenrod",
-                        text="Score Joueur 1 :" + "......")
+                        text="Score Joueur 1 :" + str(POINTS_JOUEURS[0]))
     label_J1.grid(row=4, column=0)
     label_J2 = tk.Label(racine1, bg="pale goldenrod",
-                        text="Score Joueur 2 :" + "......")
+                        text="Score Joueur 2 :" + str(POINTS_JOUEURS[1]))
     label_J2.grid(row=4, column=1)
 
     # BOUTON
     btn_SAVE = tk.Button(racine1, bg="pale goldenrod",
-                         command=None, text="Sauvegarder")
+                         command=sauvegarder, text="Sauvegarder")
     btn_SAVE.grid(row=1, column=2)
     btn_LOAD = tk.Button(racine1, bg="pale goldenrod",
-                         command=None, text="Charger")
+                         command=charger, text="Charger")
     btn_LOAD.grid(row=2, column=2)
     btn_MENU = tk.Button(racine1, bg="pale goldenrod",
                          command=lambda: window_transition(1), text="Menu")
@@ -359,6 +383,7 @@ def placer(point):  # sophie
         TOUR_JEU += 1
         alterner_tour()
         actualisation_graphique()
+        victory_check()
 
 
 def deplacer(points):  # sophie
@@ -372,6 +397,8 @@ def deplacer(points):  # sophie
             TOUR_JEU += 1
             alterner_tour()
             actualisation_graphique()
+            victory_check()
+            match_nul_check()
 
 
 def actualisation_graphique():  # sophie
@@ -386,6 +413,119 @@ def actualisation_graphique():  # sophie
                 canvas.itemconfig(rond[i*3 + j], fill="blue")
             else:
                 canvas.itemconfig(rond[i*3 + j], fill="black")
+
+
+def affichage_messages(id):  # Jihad
+    ''' gère l'ouverture et le contenu des fenetres d'informations
+    présentés aux joueurs '''
+    liste_message = ['match nul, personne ne gagne de point',
+                     'point pour le joueur 1, bravo !',
+                     'point pour le joueur 2, bravo !',
+                     'le joueur 1 a gagné la partie !',
+                     'le joueur 2 a gagné la partie !']
+    messagebox.showinfo('information', liste_message[id])
+
+
+def victory_check():  # Adam
+    ''' vérifie si un des joueurs remporte le point '''
+    win = 0
+    # lignes
+    for i in range(len(MAP)):
+        if MAP[i][0] == MAP[i][1] == MAP[i][2] and MAP[i][0] != 0:
+            win = MAP[i][0]
+    # colonnes
+    for i in range(len(MAP)):
+        if MAP[0][i] == MAP[1][i] == MAP[2][i] and MAP[0][i] != 0:
+            win += MAP[0][i]
+    # diagonales
+    if (MAP[0][0] == MAP[1][1] == MAP[2][2] and MAP[1][1] != 0) or\
+            (MAP[2][0] == MAP[1][1] == MAP[0][2] and MAP[1][1] != 0):
+        win += MAP[1][1]
+    if win != 0:
+        POINTS_JOUEURS[win-1] += 1
+        affichage_messages(win)
+        fin_de_partie()
+        nouveau_tableau()
+
+
+def nouveau_tableau():  # Adam
+    ''' réinitialise le jeu et actualise le score '''
+    global MAP
+    global TOUR_JEU
+    global ETAT_PARTIE
+    global JETONS
+    if 3 not in POINTS_JOUEURS:
+        MAP = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        TOUR_JEU = 0
+        ETAT_PARTIE = 0
+        JETONS = [3, 3]
+        window_transition(11)
+
+
+def match_nul_check():  # Adam
+    ''' vérifie si le même tableau apparait 3 fois a partir du
+    moment ou les joueurs déplaces leurs jetons '''
+    if str(MAP) in MEMORY:
+        REPETITION[MEMORY.index(str(MAP))] += 1
+    else:
+        MEMORY.append(str(MAP))
+        REPETITION.append(1)
+    if 3 in REPETITION:
+        affichage_messages(0)
+        nouveau_tableau()
+
+
+def fin_de_partie():  # jihad
+    ''' met fin a la partie si un joueur atteint 3 point '''
+    if POINTS_JOUEURS[0] == 3:
+        affichage_messages(3)
+        window_transition(1)
+    if POINTS_JOUEURS[1] == 3:
+        affichage_messages(4)
+        window_transition(1)
+
+
+def sauvegarder():  # jihad
+    ''' sauvegarde la partie en cours '''
+    fichier_sauvegarde = open('save', 'w')
+    temp = ''
+    for elm in MAP:
+        for s_elm in elm:
+            temp += str(s_elm)
+    temp += '|'
+    temp += str(POINTS_JOUEURS[0]) + str(POINTS_JOUEURS[1])
+    temp += '|'
+    temp += str(JETONS[0]) + str(JETONS[1])
+    temp += '|'
+    temp += str(TOUR_JEU)
+    temp += '|'
+    temp += str(ETAT_PARTIE)
+    fichier_sauvegarde.write(temp)
+
+
+def charger():  # jules
+    ''' charge la dernière partie sauvegardé '''
+    global MAP, POINTS_JOUEURS, JETONS, TOUR_JEU, ETAT_PARTIE
+    fichier = open('save', 'r')
+    chaine = fichier.read()
+    liste = []
+    temp = []
+    for elm in chaine:
+        if elm != '|':
+            temp.append(elm)
+        else:
+            liste.append(temp)
+            temp = []
+    liste.append(temp)
+    print(liste)
+    MAP = [[int(liste[0][0]), int(liste[0][1]), int(liste[0][2])],
+           [int(liste[0][3]), int(liste[0][4]), int(liste[0][5])],
+           [int(liste[0][6]), int(liste[0][7]), int(liste[0][8])]]
+    POINTS_JOUEURS = [int(liste[1][0]), int(liste[1][1])]
+    JETONS = [int(liste[2][0]), int(liste[2][1])]
+    TOUR_JEU = int(liste[3][0])
+    ETAT_PARTIE = int(liste[4][0])
+    actualisation_graphique()
 
 
 menu()
